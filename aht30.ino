@@ -52,15 +52,6 @@ struct Status {
 
 bool debug = false;
 
-void setup() {
-  /**
-   * ESP32 setup
-   */
-  Serial.begin(9600);  // Start serial for output
-  Wire.begin(SDA_PIN, SCL_PIN); // Initialize I2C bus with custom pins
-  delay(5);
-}
-
 void resetScreen() {
   /**
    * Reset the serial monitor screen
@@ -185,6 +176,16 @@ bool checkCrc(RawData *data) {
   }
   // return (calculatedCrc == *crc) ? true : false;
   return calculatedCrc == data->crc;
+}
+
+void setup() {
+  /**
+   * ESP32 setup
+   */
+  Serial.begin(115200);         // Start serial for output
+  delay(5);                     // Wait 5ms before initializing I2C
+  pinMode(BOOT_BUTTON_PIN, INPUT_PULLUP); // Set boot button pin as input
+  Wire.begin(SDA_PIN, SCL_PIN); // Initialize I2C bus with custom pins
 }
 
 void loop() {
