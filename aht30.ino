@@ -105,13 +105,17 @@ void readRhTemp(byte (*sensorBytes)[5], float &rh, float &temp) {
   temp = temp * 9 / 5 + 32; // Convert C to F
 }
 
-void readAht30(char (*buf)[AHT30_DATA_LENGTH]) {
+void readAht30(RawData *rawDataStruct) {
   /**
    * Read data from the AHT30 sensor
    *
-   * @param rawData pointer to struct for data from sensor
+   * @param rawDataStruct pointer to struct for data from sensor
    */
-  char c;
+  
+  // Cast rawDataStruct pointer as a byte array pointer to use in the for loop
+  byte (*buf)[AHT30_DATA_LENGTH] = (byte (*)[AHT30_DATA_LENGTH])rawDataStruct;
+
+  // Request data from the sensor
   Wire.beginTransmission(AHT30_ADDR);
   Wire.write(AHT30_MEASURE_COMMAND, 4);
   delay(80);
@@ -124,10 +128,9 @@ void readAht30(char (*buf)[AHT30_DATA_LENGTH]) {
   }
 
   for (uint8_t i = 0; i < AHT30_DATA_LENGTH; i++) {
-    c = Wire.read();
-    (*buf)[i] = c;
+    (*buf)[i] = Wire.read();
     if (debug) {
-      Serial.printf(" 0x%02X", c);
+      Serial.printf(" 0x%02X", (byte)(*buf)[i]);
     }
   }
   if (debug) {
@@ -139,8 +142,7 @@ void loop() {
   /**
    * Main loop to read data from the AHT30 sensor and print it to the serial monitor
    */
-  char buf[7];
-  RawData *rawData = (RawData*)buf;
+  struct RawData rawData;
 
   uint32_t rhRaw, tempRaw;
   float rh, temp;
@@ -152,15 +154,14 @@ void loop() {
   }
 
   resetScreen();
-  readAht30(&buf);
-  crc = buf[7];
+  readAht30(&rawData);
 
-  printStatus(&rawData->status);
+  printStatus(&rawData.status);
 
-  readRhTemp(&rawData->sensorBytes, rh, temp);
+  readRhTemp(&rawData.sensorBytes, rh, temp);
   Serial.printf("Temperature: %3.1f °F\r\n", temp);
   Serial.printf("Humidity:    %3.1f%%\r\n", rh);
-  // Serial.printf(", crc: %i\r\n", crc);
+  // Serial.printf(", crc: %i\r\n", rawData.crc);
   Serial.print("\r\n");
   
   delay(10000);
