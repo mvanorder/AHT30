@@ -106,15 +106,16 @@ void readRhTemp(byte (*sensorBytes)[5], float &rh, float &temp) {
   temp = temp * 9 / 5 + 32; // Convert C to F
 }
 
-void readAht30(RawData *rawDataStruct) {
+bool readAht30(RawData *rawDataStruct) {
   /**
    * Read data from the AHT30 sensor
    *
    * @param rawDataStruct pointer to struct for data from sensor
    */
-  
+
   // Cast rawDataStruct pointer as a byte array pointer to use in the for loop
   byte (*buf)[AHT30_DATA_LENGTH] = (byte (*)[AHT30_DATA_LENGTH])rawDataStruct;
+  unsigned char crc = 0xFF;
 
   // Request data from the sensor
   Wire.beginTransmission(AHT30_ADDR);
@@ -133,10 +134,26 @@ void readAht30(RawData *rawDataStruct) {
     if (debug) {
       Serial.printf(" 0x%02X", (byte)(*buf)[i]);
     }
+    if (i < AHT30_DATA_LENGTH - 1) { // Exclude the last byte (CRC) from CRC calculation
+      crc ^= ((byte)(*buf)[i]);
+      for (unsigned char j = 8; j > 0; --j) {
+        if (crc & 0x80) {
+          crc = (crc << 1) ^ 0x31;
+        } else {
+          crc = (crc << 1);
+        }
+      }
+    }
   }
-  if (debug) {
-    Serial.print("\r\n");
+
+  if (crc != rawDataStruct->crc) {
+    if (debug) Serial.printf(
+      "\r\n  CRC FAIL\r\n"
+      "Calculated CRC: 0x%02X, Received CRC: 0x%02X\r\n", crc, rawDataStruct->crc);
+    return false;
   }
+  if (debug) Serial.println("\r\n  CRC OK");
+  return true;
 }
 
 unsigned char calcCrc8(unsigned char *message, unsigned char num) {
@@ -201,9 +218,7 @@ void loop() {
   }
 
   resetScreen();
-  readAht30(&rawData);
-
-  if (!checkCrc(&rawData)) {
+  if (!readAht30(&rawData)) {
     Serial.println("Data integrity check failed. Please check the sensor connection.");
     delay(5000);
     return;
