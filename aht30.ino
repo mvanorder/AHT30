@@ -23,12 +23,22 @@
 
 static const byte AHT30_MEASURE_COMMAND[] = {0xAC, 0x33, 0x00};
 
+/**
+ * @struct RawData
+ * @brief Represents the raw data received from the AHT30 sensor.
+ * @details The structure contains the status byte, sensor data bytes, and CRC byte.
+ */
 struct RawData {
   byte status;
   byte sensorBytes[5];
   byte crc;
 };
 
+/**
+ * @struct Status
+ * @brief Represents the status of the AHT30 sensor using bit-fields.
+ * @details Each bit in the status byte corresponds to a specific status flag of the sensor.
+ */
 struct Status {
     bool busy : 1;
     bool workingMode_0 : 1; // Bit-fields cannot be standard arrays
