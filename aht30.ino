@@ -1,3 +1,17 @@
+/**
+ * @file AHT30.ino
+ * @brief AHT30 Sensor demo for the Seeed Studio Xiao ESP32-C6 board.
+ * @details This code reads temperature and humidity data from the AHT30 sensor and prints it to
+ *          the serial monitor.
+ * @author Malcolm VanOrder (mvanorder1390@gmail.com)
+ * @date 2026-11-10
+ * @version 1.0
+ * @copyright Copyright (c) 2026
+ *
+ * Hardware Requirements:
+ * - ESP32
+ * - AHT30 temperature and humidity sensor connected to pins 22 (SDA) and 23 (SCL)
+ */
 #include <utility>
 #include <Wire.h>
 
@@ -28,12 +42,18 @@ struct Status {
 bool debug = false;
 
 void setup() {
+  /**
+   * ESP32 setup
+   */
   Serial.begin(9600);  // Start serial for output
   Wire.begin(SDA_PIN, SCL_PIN); // Initialize I2C bus with custom pins
   delay(5);
 }
 
 void resetScreen() {
+  /**
+   * Reset the serial monitor screen
+   */
   Serial.printf(
     "\x1b[H"      // Move the cursor to the top left
     "\x1b[J"      // Clear the screen
@@ -42,13 +62,19 @@ void resetScreen() {
 };
 
 void printStatus(byte *statusByte) {
+  /**
+   * Print the status of the AHT30 sensor
+   *
+   * @param statusByte pointer to the status byte from the sensor data
+   */
   struct Status status;
   memcpy(&status, statusByte, sizeof(status));
   Serial.print("Status:");
   if (debug) {
     Serial.printf(" 0x%02X", *statusByte);
   }
-  Serial.printf("\r\n                 Busy: %i\r\n", status.busy);
+  Serial.printf("\r\n"
+                "                 Busy: %i\r\n", status.busy);
   Serial.printf("             CMD mode: %i\r\n", status.workingMode_0);
   Serial.printf("             CYC mode: %i\r\n", status.workingMode_1);
   Serial.printf("Integrety test passed: %i\r\n", status.crcPassed);
@@ -57,11 +83,18 @@ void printStatus(byte *statusByte) {
 }
 
 void readRhTemp(byte (*sensorBytes)[5], float &rh, float &temp) {
+  /**
+   * Read humidity and temperature data from the AHT30 sensor
+   *
+   * @param sensorBytes pointer to the sensor data bytes
+   * @param rh reference to the humidity value
+   * @param temp reference to the temperature value
+   */
   uint32_t rhRaw, tempRaw;
 
-  rhRaw =    ((*sensorBytes)[0] << 16 |
-              (*sensorBytes)[1] << 8  |
-              (*sensorBytes)[2]) >> 4;
+  rhRaw =   ((*sensorBytes)[0]  << 16 |
+             (*sensorBytes)[1]  << 8  |
+             (*sensorBytes)[2]) >> 4;
   tempRaw = ((*sensorBytes)[2] & 0x0F) << 16 |
              (*sensorBytes)[3]         << 8  |
              (*sensorBytes)[4];
@@ -72,6 +105,11 @@ void readRhTemp(byte (*sensorBytes)[5], float &rh, float &temp) {
 }
 
 void readAht30(char (*buf)[7]) {
+  /**
+   * Read data from the AHT30 sensor
+   *
+   * @param rawData pointer to struct for data from sensor
+   */
   char c;
   Wire.beginTransmission(AHT30_ADDR);
   Wire.write(AHT30_MEASURE_COMMAND, 4);
@@ -96,6 +134,9 @@ void readAht30(char (*buf)[7]) {
 }
 
 void loop() {
+  /**
+   * Main loop to read data from the AHT30 sensor and print it to the serial monitor
+   */
   char buf[7];
   RawData *rawData = (RawData*)buf;
 
@@ -103,6 +144,7 @@ void loop() {
   float rh, temp;
   char crc;
 
+  // Use the boot button to toggle debug output
   if (digitalRead(BOOT_BUTTON_PIN) == LOW) {
     debug = !debug;
   }
