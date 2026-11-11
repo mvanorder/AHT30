@@ -99,7 +99,7 @@ void readRhTemp(byte (*sensorBytes)[5], float &rh, float &temp) {
              (*sensorBytes)[3]         << 8  |
              (*sensorBytes)[4];
 
-  rh = rhRaw * 100 / 0x100000 - 50;
+  rh = rhRaw * 100 / 0x100000;
   temp = tempRaw * 200 / 0x100000 - 50;
   temp = temp * 9 / 5 + 32; // Convert C to F
 }
