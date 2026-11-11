@@ -16,7 +16,8 @@
 #include <Wire.h>
 
 #define BOOT_BUTTON_PIN 9
-#define AHT30_ADDR 0x38    // AHT30 Sensor
+#define AHT30_ADDR 0x38     // AHT30 Sensor
+#define AHT30_DATA_LENGTH 7 // Sensor response data length
 #define SDA_PIN 22          // GPIO 22 -> Xiao ESP32-C6 board pin 4
 #define SCL_PIN 23          // GPIO 23 -> Xiao ESP32-C6 board pin 5
 
@@ -104,7 +105,7 @@ void readRhTemp(byte (*sensorBytes)[5], float &rh, float &temp) {
   temp = temp * 9 / 5 + 32; // Convert C to F
 }
 
-void readAht30(char (*buf)[7]) {
+void readAht30(char (*buf)[AHT30_DATA_LENGTH]) {
   /**
    * Read data from the AHT30 sensor
    *
@@ -116,12 +117,13 @@ void readAht30(char (*buf)[7]) {
   delay(80);
   Wire.write(0x71);
   Wire.endTransmission();
-  Wire.requestFrom(AHT30_ADDR, 7);
+  Wire.requestFrom(AHT30_ADDR, AHT30_DATA_LENGTH);
 
   if (debug) {
     Serial.print("DEBUG:");
   }
-  for (uint8_t i = 0; i < 7; i++) {
+
+  for (uint8_t i = 0; i < AHT30_DATA_LENGTH; i++) {
     c = Wire.read();
     (*buf)[i] = c;
     if (debug) {
