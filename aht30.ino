@@ -148,15 +148,51 @@ void readAht30(RawData *rawDataStruct) {
   }
 }
 
+unsigned char calcCrc8(unsigned char *message, unsigned char num) {
+  /**
+   * Calculate the CRC8 checksum for the given message
+   *
+   * @param message pointer to the message bytes
+   * @param num number of bytes in the message
+   * @return calculated CRC8 checksum
+   */
+  unsigned char i;
+  unsigned char byte;
+  unsigned char crc = 0xFF;
+  for (byte = 0; byte < num; byte++) {
+    crc ^= (message[byte]);
+    for (i = 8; i > 0; --i) {
+      if (crc & 0x80) {
+        crc = (crc << 1) ^ 0x31;
+      } else {
+        crc = (crc << 1);
+      }
+    }
+  }
+  return crc;
+}
+
+bool checkCrc(RawData *data) {
+  /**
+   * Check the CRC8 checksum of the received data
+   *
+   * @param data pointer to the raw data struct
+   * @return true if CRC is valid, false otherwise
+   */
+  unsigned char calculatedCrc = calcCrc8((unsigned char *)data, 6);
+  if (debug) {
+    Serial.printf("Calculated CRC: 0x%02X, Received CRC: 0x%02X\r\n", calculatedCrc, data->crc);
+  }
+  // return (calculatedCrc == *crc) ? true : false;
+  return calculatedCrc == data->crc;
+}
+
 void loop() {
   /**
    * Main loop to read data from the AHT30 sensor and print it to the serial monitor
    */
   struct RawData rawData;
-
-  uint32_t rhRaw, tempRaw;
   float rh, temp;
-  char crc;
 
   // Use the boot button to toggle debug output
   if (digitalRead(BOOT_BUTTON_PIN) == LOW) {
@@ -166,13 +202,17 @@ void loop() {
   resetScreen();
   readAht30(&rawData);
 
+  if (!checkCrc(&rawData)) {
+    Serial.println("Data integrity check failed. Please check the sensor connection.");
+    delay(5000);
+    return;
+  }
+
   printStatus(&rawData.status);
 
   readRhTemp(&rawData.sensorBytes, rh, temp);
   Serial.printf("Temperature: %3.1f °F\r\n", temp);
-  Serial.printf("Humidity:    %3.1f%%\r\n", rh);
-  // Serial.printf(", crc: %i\r\n", rawData.crc);
-  Serial.print("\r\n");
-  
+  Serial.printf("Humidity:    %3.1f%%\r\n\n", rh);
+
   delay(10000);
 }
